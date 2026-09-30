@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RYUZKI CLINIC - Dental Case System</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        medical: {
+                            50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e'
+                        },
+                        navy: { 800: '#0B192C', 900: '#1E3E62' }
+                    },
+                    fontFamily: { sans: ['Tajawal', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #F8FAF9; }
+        .tooth-btn { cursor: pointer; transition: all 0.2s; border: 1px solid #cbd5e1; }
+        .tooth-btn.selected { background-color: #0d9488 !important; color: white !important; border-color: #0f766e !important; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #14b8a6; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-slate-800 bg-slate-50 min-h-screen flex flex-col md:flex-row antialiased">
+
+    <!-- MOBILE TOP BAR -->
+    <div class="md:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-40">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-medical-600 text-white flex items-center justify-center font-bold">R</div>
+            <span class="font-bold text-base text-navy-900">RYUZKI CLINIC</span>
+        </div>
+        <button onclick="toggleSidebar()" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <!-- SIDEBAR (Collapsible on Mobile) -->
+    <aside id="sidebar" class="fixed inset-y-0 right-0 z-50 w-64 bg-white border-l border-slate-200 p-4 flex flex-col justify-between transform translate-x-full md:translate-x-0 transition-transform duration-300 md:static md:shadow-none shadow-2xl shrink-0">
+        <div>
+            <div class="flex items-center justify-between px-2 py-3 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-medical-600 to-navy-900 text-white flex items-center justify-center shadow-md">
+                        <i data-lucide="activity" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base text-navy-900">RYUZKI CLINIC</h1>
+                        <p class="text-[10px] text-slate-400 font-semibold">Dental Case System</p>
+                    </div>
+                </div>
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <nav class="mt-6 space-y-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm bg-medical-50 text-medical-700">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i> لوحة التحكم
+                </button>
+                <button onclick="switchTab('patients')" id="nav-patients" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm text-slate-600 hover:bg-slate-50">
+                    <i data-lucide="users" class="w-4 h-4"></i> سجل المرضى
+                </button>
+                <button onclick="switchTab('requirements')" id="nav-requirements" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm text-slate-600 hover:bg-slate-50">
+                    <i data-lucide="target" class="w-4 h-4"></i> متطلبات الكلية
+                </button>
+            </nav>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 space-y-2">
+            <button onclick="openNewPatientModal()" class="w-full bg-medical-600 hover:bg-medical-700 text-white py-2.5 px-4 rounded-xl font-medium text-sm flex items-center justify-center gap-2 shadow-md">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> + إضافة مريض
+            </button>
+        </div>
+    </aside>
+
+    <!-- OVERLAY FOR MOBILE SIDEBAR -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden"></div>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-4 md:p-6 overflow-y-auto max-w-6xl mx-auto w-full">
+
+        <!-- TAB 1: DASHBOARD -->
+        <section id="tab-dashboard" class="tab-content space-y-6">
+            <div class="bg-gradient-to-r from-navy-900 to-medical-700 text-white rounded-2xl p-6 shadow-lg">
+                <h2 class="text-xl md:text-2xl font-bold mb-1">مرحباً بك في RYUZKI CLINIC 👋</h2>
+                <p class="text-slate-200 text-xs md:text-sm">نظام إدارة ملفات المرضى وتوثيق الحالات السريرية لمتطلبات الكلية.</p>
+            </div>
+
+            <!-- STATS CARDS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-400 font-medium">المرضى المسجلين</p>
+                    <h3 id="stat-total-patients" class="text-xl font-bold mt-1">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-400 font-medium">الحالات المسجلة</p>
+                    <h3 id="stat-total-cases" class="text-xl font-bold mt-1">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-400 font-medium">الحالات المكتملة</p>
+                    <h3 id="stat-completed-cases" class="text-xl font-bold text-emerald-600 mt-1">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-400 font-medium">الأهداف الإجمالية</p>
+                    <h3 id="stat-target-cases" class="text-xl font-bold text-medical-600 mt-1">24</h3>
+                </div>
+            </div>
+
+            <!-- REQUIREMENTS PROGRESS BARS -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-bold text-base border-b pb-2">نسبة إنجاز متطلبات الكلية (Requirements)</h3>
+                <div id="dashboard-req-bars" class="space-y-3"></div>
+            </div>
+        </section>
+
+        <!-- TAB 2: PATIENTS LIST -->
+        <section id="tab-patients" class="tab-content space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold">سجل المرضى</h2>
+                <button onclick="openNewPatientModal()" class="bg-medical-600 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1">
+                    <i data-lucide="plus" class="w-4 h-4"></i> مريض جديد
+                </button>
+            </div>
+
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                <input type="text" id="patient-search" oninput="renderPatientsList()" placeholder="بحث بالاسم أو الهاتف..." class="w-full px-3 py-2 bg-slate-50 border-0 rounded-lg text-sm outline-none">
+            </div>
+
+            <div id="patients-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </section>
+
+        <!-- TAB 3: PATIENT PROFILE -->
+        <section id="tab-patient-profile" class="tab-content space-y-4 hidden">
+            <button onclick="switchTab('patients')" class="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1">
+                <i data-lucide="arrow-right" class="w-4 h-4"></i> العودة للقائمة
+            </button>
+
+            <div id="profile-header-card" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3"></div>
+
+            <div class="flex justify-between items-center pt-2">
+                <h3 class="font-bold text-base">الحالات السريرية الموثقة</h3>
+                <button onclick="openNewCaseModalForCurrentPatient()" class="bg-medical-600 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm">
+                    + إضافة حالة جديدة
+                </button>
+            </div>
+
+            <div id="profile-cases-container" class="space-y-3"></div>
+        </section>
+
+        <!-- TAB 4: REQUIREMENTS TRACKER SETTINGS -->
+        <section id="tab-requirements" class="tab-content space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold">متطلبات الكلية (الركوايرمنت)</h2>
+                <button onclick="saveRequirementsTargets()" class="bg-medical-600 text-white text-xs font-bold px-4 py-2 rounded-xl">حفظ الأهداف سحابياً</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                    <label class="block text-xs font-bold text-slate-600">عيادة الاوبرتف (Operative):</label>
+                    <input type="number" id="req-target-operative" value="7" min="1" class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm font-bold">
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                    <label class="block text-xs font-bold text-slate-600">عيادة الجراحة (Surgery):</label>
+                    <input type="number" id="req-target-surgery" value="7" min="1" class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm font-bold">
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                    <label class="block text-xs font-bold text-slate-600">عيادة البريو (Periodontics):</label>
+                    <input type="number" id="req-target-periodontics" value="7" min="1" class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm font-bold">
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                    <label class="block text-xs font-bold text-slate-600">عيادة البروس (Prosthodontics):</label>
+                    <input type="number" id="req-target-prostho" value="3" min="1" class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm font-bold">
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: ADD PATIENT CASE SHEET -->
+    <div id="modal-patient" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-xl">
+            <div class="flex items-center justify-between border-b pb-2">
+                <h3 class="font-bold text-base">إضافة مريض جديد (Case Sheet)</h3>
+                <button onclick="closeModal('modal-patient')" class="text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <form id="form-patient" onsubmit="handlePatientFormSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold mb-1">اسم المريض *</label>
+                    <input type="text" id="pform-name" required class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold mb-1">العمر *</label>
+                        <input type="number" id="pform-age" required class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">الجنس *</label>
+                        <select id="pform-gender" class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm">
+                            <option value="ذكر">ذكر</option>
+                            <option value="أنثى">أنثى</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold mb-1">رقم الهاتف *</label>
+                        <input type="tel" id="pform-phone" required class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">السكن</label>
+                        <input type="text" id="pform-address" class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">مواقع التواصل</label>
+                    <input type="text" id="pform-social" placeholder="رابط أو اسم الحساب..." class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm">
+                </div>
+
+                <!-- QUESTIONS -->
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t">
+                    <div>
+                        <label class="block font-bold mb-1">هل المريض مدخن؟</label>
+                        <select id="pform-smoking" class="w-full px-2 py-1.5 bg-slate-50 border rounded-lg"><option value="لا">لا</option><option value="نعم">نعم</option></select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">ضغط الدم؟</label>
+                        <select id="pform-htn" class="w-full px-2 py-1.5 bg-slate-50 border rounded-lg"><option value="لا">لا</option><option value="نعم">نعم</option></select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">السكر؟</label>
+                        <select id="pform-diabetes" class="w-full px-2 py-1.5 bg-slate-50 border rounded-lg"><option value="لا">لا</option><option value="نعم">نعم</option></select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">HIV؟</label>
+                        <select id="pform-hiv" class="w-full px-2 py-1.5 bg-slate-50 border rounded-lg"><option value="لا">لا</option><option value="نعم">نعم</option></select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">التهاب الكبد؟</label>
+                        <select id="pform-hepatitis" class="w-full px-2 py-1.5 bg-slate-50 border rounded-lg"><option value="لا">لا</option><option value="نعم">نعم</option></select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">مريض معارف أم غريب؟</label>
+                        <select id="pform-relation" class="w-full px-2 py-1.5 bg-slate-50 border rounded-lg"><option value="غريب">غريب</option><option value="معارف">معارف</option></select>
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-2 border-t">
+                    <div>
+                        <label class="block font-bold mb-1">يشرب أدوية معينة؟</label>
+                        <select id="pform-meds-toggle" onchange="document.getElementById('pform-meds-detail').classList.toggle('hidden', this.value === 'لا')" class="w-full px-2 py-1.5 bg-slate-50 border rounded-lg">
+                            <option value="لا">لا</option><option value="نعم">نعم</option>
+                        </select>
+                        <input type="text" id="pform-meds-detail" placeholder="ماهي الأدوية؟" class="w-full mt-1 px-3 py-1.5 bg-slate-50 border rounded-lg hidden">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">يمتلك حساسية؟</label>
+                        <select id="pform-allergy-toggle" onchange="document.getElementById('pform-allergy-detail').classList.toggle('hidden', this.value === 'لا')" class="w-full px-2 py-1.5 bg-slate-50 border rounded-lg">
+                            <option value="لا">لا</option><option value="نعم">نعم</option>
+                        </select>
+                        <input type="text" id="pform-allergy-detail" placeholder="ماهي الحساسية؟" class="w-full mt-1 px-3 py-1.5 bg-slate-50 border rounded-lg hidden">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t">
+                    <div>
+                        <label class="block font-bold mb-1">نظافة الفم</label>
+                        <select id="pform-hygiene" class="w-full px-2 py-1.5 bg-slate-50 border rounded-lg"><option value="جيدة">جيدة</option><option value="متوسطة">متوسطة</option><option value="سيئة">سيئة</option></select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">عدد مرات التفريش</label>
+                        <select id="pform-brushing" class="w-full px-2 py-1.5 bg-slate-50 border rounded-lg"><option value="مرة">مرة</option><option value="مرتين">مرتين</option><option value="ثلاث">ثلاث</option></select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t">
+                    <button type="button" onclick="closeModal('modal-patient')" class="px-3 py-1.5 text-slate-500">إلغاء</button>
+                    <button type="submit" class="px-5 py-1.5 bg-medical-600 text-white rounded-lg font-bold">حفظ المريض</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ADD CLINICAL CASE -->
+    <div id="modal-case" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 hidden">
+        <div class="bg-white rounded-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto p-5 space-y-4 shadow-xl text-xs">
+            <div class="flex items-center justify-between border-b pb-2">
+                <h3 class="font-bold text-base">إضافة حالة سريرية للمريض</h3>
+                <button onclick="closeModal('modal-case')" class="text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <form id="form-case" onsubmit="handleCaseFormSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block font-bold mb-1">اختر المريض *</label>
+                    <select id="caseform-patient-id" required class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm font-bold"></select>
+                </div>
+
+                <div>
+                    <label class="block font-bold mb-1">اختر العيادة *</label>
+                    <select id="caseform-clinic" required onchange="switchClinicCaseForm(this.value)" class="w-full px-3 py-2 bg-slate-50 border rounded-lg text-sm font-bold text-medical-600">
+                        <option value="Operative">عيادة اوبرتف (Operative)</option>
+                        <option value="Periodontics">عيادة بريو (Periodontics)</option>
+                        <option value="Surgery">عيادة جراحة (Surgery)</option>
+                        <option value="Prosthodontics">عيادة بروس (Prosthodontics)</option>
+                    </select>
+                </div>
+
+                <!-- CLINIC DYNAMIC FIELDS -->
+                <div id="clinic-specific-fields" class="space-y-3 p-3 bg-slate-50 rounded-xl border"></div>
+
+                <!-- IMAGE UPLOADER -->
+                <div>
+                    <label class="block font-bold mb-1">صورة الحالة (استوديو أو ملفات) *</label>
+                    <input type="file" id="caseform-image" accept="image/*" class="w-full text-xs">
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t">
+                    <button type="button" onclick="closeModal('modal-case')" class="px-3 py-1.5 text-slate-500">إلغاء</button>
+                    <button type="submit" class="px-5 py-1.5 bg-medical-600 text-white rounded-lg font-bold">حفظ الحالة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FIREBASE MODULE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJG1c5-wxoOccC00dRXUnX9fnfuAM1PMU",
+            authDomain: "clen-37c7b.firebaseapp.com",
+            projectId: "clen-37c7b",
+            storageBucket: "clen-37c7b.firebasestorage.app",
+            messagingSenderId: "742770383853",
+            appId: "1:742770383853:web:d6ba03e13e8fcf314765e4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const firestore = getFirestore(app);
+
+        window.firestore = firestore;
+        window.selectedTeeth = [];
+        window.currentPatientId = null;
+
+        window.requirementsTargets = { Operative: 7, Surgery: 7, Periodontics: 7, Prosthodontics: 3 };
+
+        window.getAllStore = async function(storeName) {
+            try {
+                const querySnapshot = await getDocs(collection(firestore, storeName));
+                let list = [];
+                querySnapshot.forEach((doc) => list.push(doc.data()));
+                return list;
+            } catch (e) {
+                return JSON.parse(localStorage.getItem(`ryuzki_${storeName}`) || '[]');
+            }
+        };
+
+        window.putStore = async function(storeName, item) {
+            try {
+                await setDoc(doc(firestore, storeName, item.id), item);
+            } catch (e) {}
+            let localList = JSON.parse(localStorage.getItem(`ryuzki_${storeName}`) || '[]');
+            localList = localList.filter(i => i.id !== item.id);
+            localList.push(item);
+            localStorage.setItem(`ryuzki_${storeName}`, JSON.stringify(localList));
+        };
+
+        window.deleteStore = async function(storeName, id) {
+            try {
+                await deleteDoc(doc(firestore, storeName, id));
+            } catch (e) {}
+            let localList = JSON.parse(localStorage.getItem(`ryuzki_${storeName}`) || '[]');
+            localList = localList.filter(i => i.id !== id);
+            localStorage.setItem(`ryuzki_${storeName}`, JSON.stringify(localList));
+        };
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+            const reqDocs = await window.getAllStore('settings');
+            const reqSetting = reqDocs.find(d => d.id === 'requirements');
+            if (reqSetting) {
+                window.requirementsTargets = reqSetting.data;
+                document.getElementById('req-target-operative').value = window.requirementsTargets.Operative;
+                document.getElementById('req-target-surgery').value = window.requirementsTargets.Surgery;
+                document.getElementById('req-target-periodontics').value = window.requirementsTargets.Periodontics;
+                document.getElementById('req-target-prostho').value = window.requirementsTargets.Prosthodontics;
+            }
+            refreshAllViews();
+            switchClinicCaseForm('Operative');
+        });
+    </script>
+
+    <!-- UI APP LOGIC -->
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('translate-x-full');
+            document.getElementById('sidebar-overlay').classList.toggle('hidden');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('bg-medical-50', 'text-medical-700');
+                el.classList.add('text-slate-600');
+            });
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) activeNav.classList.add('bg-medical-50', 'text-medical-700');
+
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('translate-x-full');
+                document.getElementById('sidebar-overlay').classList.add('hidden');
+            }
+
+            if (tabId === 'dashboard') renderDashboard();
+        }
+
+        async function refreshAllViews() {
+            renderDashboard();
+            renderPatientsList();
+            renderRequirementsTracker();
+            populatePatientDropdowns();
+        }
+
+        async function renderDashboard() {
+            const patients = await window.getAllStore('patients');
+            const cases = await window.getAllStore('cases');
+
+            const completedCases = cases.filter(c => c.status === 'مكتملة');
+            const totalTarget = Object.values(window.requirementsTargets).reduce((a, b) => a + b, 0);
+
+            document.getElementById('stat-total-patients').innerText = patients.length;
+            document.getElementById('stat-total-cases').innerText = cases.length;
+            document.getElementById('stat-completed-cases').innerText = completedCases.length;
+            document.getElementById('stat-target-cases').innerText = totalTarget;
+
+            renderDashboardReqBars(cases);
+        }
+
+        function renderDashboardReqBars(cases) {
+            const clinics = ['Operative', 'Surgery', 'Periodontics', 'Prosthodontics'];
+            const container = document.getElementById('dashboard-req-bars');
+
+            container.innerHTML = clinics.map(clinic => {
+                const completed = cases.filter(c => c.clinic === clinic && c.status === 'مكتملة').length;
+                const target = window.requirementsTargets[clinic] || 7;
+                const percent = Math.min(100, Math.round((completed / target) * 100));
+
+                return `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs font-bold">
+                            <span>${clinic}</span>
+                            <span class="text-medical-600">${completed} / ${target} مكتمل (${percent}%)</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-medical-500 rounded-full" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function renderPatientsList() {
+            const patients = await window.getAllStore('patients');
+            const cases = await window.getAllStore('cases');
+            const search = document.getElementById('patient-search').value.toLowerCase();
+
+            const filtered = patients.filter(p => p.name.toLowerCase().includes(search) || p.phone.includes(search));
+            const container = document.getElementById('patients-cards-container');
+
+            container.innerHTML = filtered.map(p => {
+                const pCases = cases.filter(c => c.patientId === p.id);
+                return `
+                    <div onclick="viewPatientProfile('${p.id}')" class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-medical-500 cursor-pointer flex justify-between items-center">
+                        <div>
+                            <h4 class="font-bold text-sm">${p.name}</h4>
+                            <p class="text-xs text-slate-400">العمر: ${p.age} • ${p.phone}</p>
+                        </div>
+                        <span class="px-2.5 py-1 bg-medical-50 text-medical-700 font-bold text-xs rounded-full">${pCases.length} حالة</span>
+                    </div>
+                `;
+            }).join('') || '<p class="text-xs text-slate-400">لا يوجد مرضى مطابثين.</p>';
+        }
+
+        async function viewPatientProfile(patientId) {
+            window.currentPatientId = patientId;
+            const patients = await window.getAllStore('patients');
+            const cases = await window.getAllStore('cases');
+
+            const patient = patients.find(p => p.id === patientId);
+            if (!patient) return;
+
+            const pCases = cases.filter(c => c.patientId === patientId);
+
+            document.getElementById('profile-header-card').innerHTML = `
+                <div class="flex items-center justify-between border-b pb-3">
+                    <div>
+                        <h2 class="text-xl font-bold text-navy-900">${patient.name}</h2>
+                        <p class="text-xs text-slate-400">العمر: ${patient.age} • الجنس: ${patient.gender} • الهاتف: ${patient.phone}</p>
+                    </div>
+                    <span class="px-3 py-1 bg-slate-100 text-slate-600 font-bold text-xs rounded-lg">${patient.relation || 'غريب'}</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs pt-2">
+                    <div><b>مدخن:</b> ${patient.smoking}</div>
+                    <div><b>الضغط:</b> ${patient.htn}</div>
+                    <div><b>السكر:</b> ${patient.diabetes}</div>
+                    <div><b>HIV:</b> ${patient.hiv}</div>
+                    <div><b>التهاب الكبد:</b> ${patient.hepatitis}</div>
+                    <div><b>نظافة الفم:</b> ${patient.hygiene}</div>
+                    <div><b>التفريش:</b> ${patient.brushing}</div>
+                    <div><b>الحساسية:</b> ${patient.allergy === 'نعم' ? patient.allergyDetail : 'لا'}</div>
+                </div>
+            `;
+
+            document.getElementById('profile-cases-container').innerHTML = pCases.map(c => `
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2 text-xs">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <span class="font-bold text-medical-600 text-sm">${c.clinic}</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleCaseStatus('${c.id}')" class="px-2 py-1 ${c.status === 'مكتملة' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} font-bold rounded-lg">
+                                ${c.status} (اضغط للتغيير)
+                            </button>
+                            <button onclick="deleteCase('${c.id}')" class="text-rose-500 font-bold">حذف</button>
+                        </div>
+                    </div>
+                    <div><b>الأسنان / التفاصيل:</b> ${c.teeth || 'عام'}</div>
+                    <div><b>تفاصيل الحالة:</b> ${c.details || 'لا يوجد'}</div>
+                    ${c.image ? `<div class="pt-2"><img src="${c.image}" class="w-32 h-32 object-cover rounded-lg border"></div>` : ''}
+                </div>
+            `).join('') || '<p class="text-xs text-slate-400">لا توجد حالات مسجلة لهذا المريض.</p>';
+
+            switchTab('patient-profile');
+        }
+
+        async function toggleCaseStatus(caseId) {
+            const cases = await window.getAllStore('cases');
+            const c = cases.find(item => item.id === caseId);
+            if (c) {
+                c.status = c.status === 'مكتملة' ? 'غير مكتملة' : 'مكتملة';
+                await window.putStore('cases', c);
+                viewPatientProfile(window.currentPatientId);
+                renderDashboard();
+            }
+        }
+
+        async function deleteCase(caseId) {
+            if (confirm('هل أنت متأكد من حذف هذه الحالة؟')) {
+                await window.deleteStore('cases', caseId);
+                viewPatientProfile(window.currentPatientId);
+                renderDashboard();
+            }
+        }
+
+        function openModal(modalId) { document.getElementById(modalId).classList.remove('hidden'); }
+        function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
+
+        function openNewPatientModal() {
+            document.getElementById('form-patient').reset();
+            openModal('modal-patient');
+        }
+
+        async function handlePatientFormSubmit(e) {
+            e.preventDefault();
+            const patientData = {
+                id: 'P-' + Date.now(),
+                name: document.getElementById('pform-name').value,
+                age: document.getElementById('pform-age').value,
+                gender: document.getElementById('pform-gender').value,
+                phone: document.getElementById('pform-phone').value,
+                address: document.getElementById('pform-address').value,
+                social: document.getElementById('pform-social').value,
+                smoking: document.getElementById('pform-smoking').value,
+                htn: document.getElementById('pform-htn').value,
+                diabetes: document.getElementById('pform-diabetes').value,
+                hiv: document.getElementById('pform-hiv').value,
+                hepatitis: document.getElementById('pform-hepatitis').value,
+                relation: document.getElementById('pform-relation').value,
+                meds: document.getElementById('pform-meds-toggle').value,
+                medsDetail: document.getElementById('pform-meds-detail').value,
+                allergy: document.getElementById('pform-allergy-toggle').value,
+                allergyDetail: document.getElementById('pform-allergy-detail').value,
+                hygiene: document.getElementById('pform-hygiene').value,
+                brushing: document.getElementById('pform-brushing').value,
+                createdAt: new Date().toISOString()
+            };
+
+            await window.putStore('patients', patientData);
+            closeModal('modal-patient');
+            refreshAllViews();
+        }
+
+        async function openNewCaseModal() {
+            await populatePatientDropdowns();
+            window.selectedTeeth = [];
+            openModal('modal-case');
+        }
+
+        async function openNewCaseModalForCurrentPatient() {
+            await openNewCaseModal();
+            if (window.currentPatientId) {
+                document.getElementById('caseform-patient-id').value = window.currentPatientId;
+            }
+        }
+
+        async function populatePatientDropdowns() {
+            const patients = await window.getAllStore('patients');
+            const options = patients.map(p => `<option value="${p.id}">${p.name} (${p.phone})</option>`).join('') || '<option value="">لا يوجد مرضى</option>';
+            document.getElementById('caseform-patient-id').innerHTML = options;
+        }
+
+        function switchClinicCaseForm(clinic) {
+            const container = document.getElementById('clinic-specific-fields');
+            window.selectedTeeth = [];
+
+            if (clinic === 'Operative') {
+                container.innerHTML = `
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="block font-bold">الفك</label><select id="op-arch" class="w-full border rounded p-1"><option>أعلى</option><option>أسفل</option></select></div>
+                        <div><label class="block font-bold">الموقع</label><select id="op-pos" class="w-full border rounded p-1"><option>أمامي</option><option>خلفي</option></select></div>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">اختر السن من الفك:</label>
+                        <div class="flex flex-wrap gap-1" id="teeth-grid"></div>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">هل هناك ألم بالسن؟</label>
+                        <select id="op-pain-toggle" onchange="document.getElementById('op-pain-details').classList.toggle('hidden', this.value === 'لا')" class="w-full border rounded p-1">
+                            <option value="لا">لا</option><option value="نعم">نعم</option>
+                        </select>
+                    </div>
+                    <div id="op-pain-details" class="hidden space-y-1 bg-amber-50 p-2 rounded">
+                        <input type="text" id="op-pain-time" placeholder="متى يظهر؟ وهل يظهر بالليل؟" class="w-full border rounded p-1">
+                        <select id="op-pain-trigger" class="w-full border rounded p-1">
+                            <option>يظهر عند الأكل الحار</option>
+                            <option>يظهر عند الأكل البارد</option>
+                            <option>يظهر عند أكل الحلويات</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="block font-bold">تصنيف الحشوة</label><select id="op-class" class="w-full border rounded p-1"><option>cl 1</option><option>cl 2</option><option>cl 3</option><option>cl 4</option><option>cl 5</option></select></div>
+                        <div><label class="block font-bold">العمق</label><select id="op-depth" class="w-full border rounded p-1"><option>بسيط</option><option>متوسط</option><option>عميق</option></select></div>
+                    </div>
+                `;
+                renderTeethGrid();
+            } else if (clinic === 'Periodontics') {
+                container.innerHTML = `
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="block font-bold">حركة في الأسنان؟</label><select id="perio-mobility" class="w-full border rounded p-1"><option>لا</option><option>نعم</option></select></div>
+                        <div><label class="block font-bold">نزيف لثة؟</label><select id="perio-bleeding" class="w-full border rounded p-1"><option>لا</option><option>نعم</option></select></div>
+                        <div><label class="block font-bold">حالة المريض</label><select id="perio-status" class="w-full border rounded p-1"><option>simple</option><option>default</option></select></div>
+                        <div><label class="block font-bold">خشونة سطح السن؟</label><select id="perio-roughness" class="w-full border rounded p-1"><option>لا</option><option>نعم</option></select></div>
+                    </div>
+                `;
+            } else if (clinic === 'Surgery') {
+                container.innerHTML = `
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="block font-bold">تضخم لثة؟</label><select id="surg-hyperplasia" class="w-full border rounded p-1"><option>لا</option><option>نعم</option></select></div>
+                        <div><label class="block font-bold">حالة السن</label><select id="surg-tooth-state" class="w-full border rounded p-1"><option>سن كامل</option><option>جذر فقط</option></select></div>
+                        <div><label class="block font-bold">حشوة جذر؟</label><select id="surg-rct" class="w-full border rounded p-1"><option>لا</option><option>نعم</option></select></div>
+                        <div><label class="block font-bold">سبب القلع</label><select id="surg-reason" class="w-full border rounded p-1"><option>سن متهالك</option><option>ألم شديد</option><option>أغراض تقويمية</option></select></div>
+                    </div>
+                    <div><label class="block font-bold mb-1">رقم ومكان السن:</label><input type="text" id="surg-tooth-num" placeholder="مثلاً: 16 علوي أيمن" class="w-full border rounded p-1"></div>
+                `;
+            } else if (clinic === 'Prosthodontics') {
+                container.innerHTML = `
+                    <div><label class="block font-bold mb-1">تحديد الأسنان المفقودة:</label><div class="flex flex-wrap gap-1" id="teeth-grid"></div></div>
+                    <div class="grid grid-cols-2 gap-2 pt-2">
+                        <div><label class="block font-bold">هل هناك عظم؟</label><select id="pros-bone" class="w-full border rounded p-1"><option>نعم</option><option>لا</option></select></div>
+                        <div><label class="block font-bold">لعبان نفس؟</label><select id="pros-nausea" class="w-full border rounded p-1"><option>لا</option><option>نعم</option></select></div>
+                    </div>
+                    <div class="pt-2"><label class="block font-bold">سن يجب قلعه قبل العملية؟</label><select id="pros-extract" class="w-full border rounded p-1"><option>لا</option><option>نعم</option></select></div>
+                `;
+                renderTeethGrid();
+            }
+        }
+
+        function renderTeethGrid() {
+            const grid = document.getElementById('teeth-grid');
+            if (!grid) return;
+            let teethHTML = '';
+            for (let i = 11; i <= 48; i++) {
+                if (i % 10 === 9) continue;
+                teethHTML += `<button type="button" onclick="toggleTooth('${i}', this)" class="tooth-btn w-7 h-7 text-[10px] font-bold rounded">${i}</button>`;
+            }
+            grid.innerHTML = teethHTML;
+        }
+
+        function toggleTooth(num, btn) {
+            btn.classList.toggle('selected');
+            if (window.selectedTeeth.includes(num)) {
+                window.selectedTeeth = window.selectedTeeth.filter(t => t !== num);
+            } else {
+                window.selectedTeeth.push(num);
+            }
+        }
+
+        async function handleCaseFormSubmit(e) {
+            e.preventDefault();
+            const patientId = document.getElementById('caseform-patient-id').value;
+            const clinic = document.getElementById('caseform-clinic').value;
+            const fileInput = document.getElementById('caseform-image');
+
+            let imageBase64 = '';
+            if (fileInput.files.length > 0) {
+                imageBase64 = await convertFileToBase64(fileInput.files[0]);
+            }
+
+            let details = '';
+            if (clinic === 'Operative') {
+                details = `حشوة: ${document.getElementById('op-class').value} • عمق: ${document.getElementById('op-depth').value} • ألم: ${document.getElementById('op-pain-toggle').value}`;
+            } else if (clinic === 'Periodontics') {
+                details = `حركة: ${document.getElementById('perio-mobility').value} • نزيف: ${document.getElementById('perio-bleeding').value} • حالة: ${document.getElementById('perio-status').value}`;
+            } else if (clinic === 'Surgery') {
+                details = `سبب القلع: ${document.getElementById('surg-reason').value} • السن: ${document.getElementById('surg-tooth-num').value}`;
+            } else if (clinic === 'Prosthodontics') {
+                details = `عظم: ${document.getElementById('pros-bone').value} • قلع سابق: ${document.getElementById('pros-extract').value}`;
+            }
+
+            const caseData = {
+                id: 'C-' + Date.now(),
+                patientId: patientId,
+                clinic: clinic,
+                teeth: window.selectedTeeth.join(', '),
+                details: details,
+                status: 'مكتملة',
+                image: imageBase64,
+                createdAt: new Date().toISOString()
+            };
+
+            await window.putStore('cases', caseData);
+            closeModal('modal-case');
+            refreshAllViews();
+            if (window.currentPatientId) viewPatientProfile(window.currentPatientId);
+        }
+
+        function convertFileToBase64(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function renderRequirementsTracker() {
+            const cases = await window.getAllStore('cases');
+            const clinics = ['Operative', 'Surgery', 'Periodontics', 'Prosthodontics'];
+
+            clinics.forEach(clinic => {
+                const completed = cases.filter(c => c.clinic === clinic && c.status === 'مكتملة').length;
+                const target = window.requirementsTargets[clinic] || 7;
+            });
+        }
+
+        async function saveRequirementsTargets() {
+            window.requirementsTargets = {
+                Operative: parseInt(document.getElementById('req-target-operative').value) || 7,
+                Surgery: parseInt(document.getElementById('req-target-surgery').value) || 7,
+                Periodontics: parseInt(document.getElementById('req-target-periodontics').value) || 7,
+                Prosthodontics: parseInt(document.getElementById('req-target-prostho').value) || 3
+            };
+
+            await window.putStore('settings', { id: 'requirements', data: window.requirementsTargets });
+            alert('تم حفظ الأهداف سحابياً بنجاح!');
+            renderDashboard();
+        }
+    </script>
+</body>
+</html>
